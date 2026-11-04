@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""老王選股雷達：每日抓取台股收盤資料並計算訊號。
+"""台股選股雷達：每日抓取台股收盤資料，依 strategies/ 內的策略評分。
 
 流程
 1. 從今天往回補齊最近 TARGET_DAYS 個交易日的原始資料（data/raw/YYYYMMDD.json）
    - 證交所：每日收盤行情 MI_INDEX、三大法人 T86
    - 櫃買中心：上櫃收盤行情、三大法人
-2. 讀取原始資料，對每一檔股票計算老王規則訊號
-3. 輸出網站到 _site/：index.html、data/screener.json、data/s/<代號>.json
+2. 抓最新的本益比、股價淨值比（data/fund.json），換算 EPS 與 ROE
+3. 抓加權指數收盤（data/taiex.json），給大盤濾鏡用
+4. 用 scripts/strategy.py 計算技術分、量價型態、各策略的歷史訊號勝率
+5. 輸出網站到 _site/：index.html、backtest.html、engine.js、data/screener.json、data/s/<代號>.json
 
 用法
   python scripts/update.py              # 正常每日執行
@@ -23,7 +25,12 @@ import time
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import strategy as S
+
 ROOT = Path(__file__).resolve().parent.parent
+STRATS = ROOT / "strategies"
+FUND = ROOT / "data" / "fund.json"
+TAIEX = ROOT / "data" / "taiex.json"
 RAW = ROOT / "data" / "raw"
 HOLIDAYS = ROOT / "data" / "holidays.json"
 SITE = ROOT / "_site"
@@ -40,7 +47,7 @@ RETRY_WINDOW = 7       # 幾天內缺漏的資料會再補抓
 FETCH_BUDGET = 95 * 60 # 抓資料最多花幾秒；時間到就先存檔、建網站，剩下的下次再補
 _t0 = time.time()
 
-UA = {"User-Agent": "Mozilla/5.0 (laowang-radar; daily close data)",
+UA = {"User-Agent": "Mozilla/5.0 (tw-stock-radar; daily close data)",
       "Accept": "application/json,text/plain,*/*"}
 
 
@@ -284,96 +291,86 @@ def update_raw():
         p.unlink()
 
 
-# ---------------------------------------------------------------- signals
-# 與網頁 index.html 內的 analyze() 規則一致，修改時兩邊要一起改。
-def ma(arr, k, i):
-    if i < k - 1:
-        return math.nan
-    return sum(arr[i - k + 1:i + 1]) / k
+# ---------------------------------------------------------------- fundamentals
+def _pick(obj, *keys):
+    """在 dict 裡找第一個鍵名包含任一關鍵字的值。"""
+    for k, v in obj.items():
+        if any(x.lower() in k.lower() for x in keys):
+            return v
+    return None
 
 
-def gt(a, b):
-    return not (math.isnan(a) or math.isnan(b)) and a > b
-
-
-def analyze(rows, has_chips):
-    """rows: [[date,o,h,l,c,v,f,t], ...] 依日期排序"""
-    n = len(rows)
-    L = n - 1
-    C = [r[4] for r in rows]
-    V = [r[5] for r in rows]
-    M = {k: [ma(C, k, i) for i in range(n)] for k in (5, 10, 20, 60)}
-
-    def above3(i):
-        return all(gt(C[i], M[k][i]) for k in (5, 10, 20))
-
-    def below3(i):
-        return all(gt(M[k][i], C[i]) for k in (5, 10, 20))
-
-    last = rows[-120:]
-    lo, hi = min(r[3] for r in last), max(r[2] for r in last)
-
-    def base_pos(v):
-        return (v - lo) / (hi - lo) if hi > lo else 0.5
-
-    big = None
-    for i in range(L, max(20, n - 30) - 1, -1):
-        avg = sum(V[i - 20:i]) / 20
-        if avg > 0 and V[i] >= avg * 2:
-            big = {"i": i, "date": rows[i][0], "high": rows[i][2], "low": rows[i][3],
-                   "ratio": round(V[i] / avg, 2), "base": round(base_pos(C[i]), 3)}
-            break
-    seg = V[max(0, L - 20):L]
-    v_avg = sum(seg) / max(1, min(20, L))
-    sig, na = {}, {}
-    have20, have60 = n >= 23, n >= 63
-    if have20:
-        sig["sanyang"] = above3(L) and any(not above3(i) for i in (L - 1, L - 2, L - 3))
-        m = [M[k][L] for k in (5, 10, 20)]
-        sig["tangle"] = (max(m) - min(m)) / C[L] < 0.02
-        sig["sansheng"] = below3(L)
-        sig["ride5"] = all(C[i] >= rows[i - 1][3] and not gt(M[5][i], C[i]) for i in (L, L - 1, L - 2))
+def update_fund():
+    """最新一日的本益比、股價淨值比、殖利率。
+    EPS（近四季）= 收盤價 ÷ 本益比；ROE ≈ 股價淨值比 ÷ 本益比。本益比空白代表近四季虧損。"""
+    out, srcs = {}, []
+    j = get_json("https://openapi.twse.com.tw/v1/exchangeReport/BWIBBU_ALL", tries=2)
+    if isinstance(j, list) and j:
+        for r in j:
+            code = str(_pick(r, "Code") or "").strip()
+            if code:
+                out[code] = [num(_pick(r, "PEratio")), num(_pick(r, "PBratio")), num(_pick(r, "DividendYield"))]
+        srcs.append("上市")
     else:
-        for k in ("sanyang", "tangle", "sansheng", "ride5"):
-            na[k] = 1
-    if have60:
-        sig["season"] = all(gt(C[i], M[60][i]) for i in (L, L - 1, L - 2))
-        sig["belowSeason"] = gt(M[60][L], C[L])
+        print("  證交所本益比資料抓取失敗", file=sys.stderr)
+    j = get_json("https://www.tpex.org.tw/openapi/v1/tpex_mainboard_peratio_analysis", tries=2)
+    n0 = len(out)
+    if isinstance(j, list) and j:
+        for r in j:
+            code = str(_pick(r, "SecuritiesCompanyCode", "Code") or "").strip()
+            if code:
+                out[code] = [num(_pick(r, "PriceEarningRatio", "PEratio")), num(_pick(r, "PriceBookRatio", "PBratio")),
+                             num(_pick(r, "YieldRatio", "DividendYield"))]
+    if len(out) > n0:
+        srcs.append("上櫃")
     else:
-        na["season"] = na["belowSeason"] = 1
-    if big:
-        sig["bigBreak"] = C[L] > big["high"] and big["i"] < L
-        sig["bigHold"] = C[L] >= big["low"]
-        sig["bigBreakdown"] = C[L] < big["low"]
-        sig["lowBaseVol"] = big["base"] <= 0.35
-        sig["highBaseVol"] = big["base"] >= 0.75
-    else:
-        for k in ("bigBreak", "bigHold", "bigBreakdown", "lowBaseVol", "highBaseVol"):
-            sig[k] = False
-            na[k] = "近 30 日沒有大量 K 棒"
-    f5 = t5 = 0
-    if has_chips:
-        for r in rows[-5:]:
-            f5 += r[6] or 0
-            t5 += r[7] or 0
-        sig["chips"] = f5 > 0 and t5 > 0
-    else:
-        sig["chips"] = False
-        na["chips"] = "沒有外資、投信資料"
-    if big and C[L] >= big["low"]:
-        stop = {"v": big["low"], "why": f"大量低點（{big['date'][5:]}）"}
-    elif have20:
-        stop = {"v": round(M[20][L], 2), "why": "20 日均線"}
-    else:
-        stop = None
-    return {
-        "sig": sig, "na": na, "big": big, "stop": stop,
-        "close": C[L], "chg": round((C[L] / C[L - 1] - 1) * 100, 2) if n > 1 and C[L - 1] else 0,
-        "vr": round(V[L] / v_avg, 2) if v_avg else 0, "base": round(base_pos(C[L]), 3),
-        "f5": f5, "t5": t5, "hasChips": has_chips, "av": round(sum(V[-20:]) / min(20, n)),
-    }
+        print("  櫃買本益比資料抓取失敗或格式改變", file=sys.stderr)
+        if isinstance(j, list) and j:
+            print("[debug] tpex pe 欄位：" + json.dumps(j[0], ensure_ascii=False)[:500])
+    if out:
+        old = load_json(FUND, {})
+        if "上櫃" not in srcs and old.get("stocks"):  # 這次上櫃沒抓到，沿用上次的
+            for k, v in old["stocks"].items():
+                out.setdefault(k, v)
+        FUND.write_text(json.dumps({"date": dt.datetime.now(TZ).date().isoformat(), "stocks": out},
+                                   ensure_ascii=False, separators=(",", ":")), "utf-8")
+        print(f"本益比資料：{len(out)} 檔（{'、'.join(srcs) or '沿用舊資料'}）")
 
 
+def update_taiex():
+    """加權指數每日收盤（證交所 FMTQIK，一次一個月）。"""
+    have = load_json(TAIEX, {})
+    files = sorted(RAW.glob("*.json"))
+    if not files:
+        return
+    first = dt.date.fromisoformat(f"{files[0].stem[:4]}-{files[0].stem[4:6]}-01")
+    today = dt.datetime.now(TZ).date()
+    months, m = [], first
+    while m <= today:
+        months.append(m)
+        m = (m.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
+    recent = {months[-1], months[-2] if len(months) > 1 else months[-1]}
+    for m in months:
+        key = f"{m:%Y-%m}"
+        if m not in recent and any(d.startswith(key) for d in have):
+            continue
+        j = get_json(f"https://www.twse.com.tw/rwd/zh/afterTrading/FMTQIK?date={m:%Y%m}01&response=json", tries=2)
+        if not j or str(j.get("stat", "")).upper() != "OK":
+            continue
+        f = [str(x).strip() for x in j.get("fields", [])]
+        idt, ic = find(f, has("日期")), find(f, has("加權股價指數"))
+        if idt < 0 or ic < 0:
+            debug_once("taiex", j)
+            continue
+        for row in j.get("data", []):
+            y, mo, d = str(row[idt]).strip().split("/")
+            v = num(row[ic])
+            if v:
+                have[f"{int(y) + 1911}-{int(mo):02d}-{int(d):02d}"] = v
+    TAIEX.write_text(json.dumps(dict(sorted(have.items())), separators=(",", ":")), "utf-8")
+
+
+# ---------------------------------------------------------------- build site
 def write_page(src, dst):
     page = src.read_text("utf-8")
     if not page.lstrip().lower().startswith("<!doctype"):
@@ -386,6 +383,59 @@ def write_page(src, dst):
     dst.write_text(page, "utf-8")
 
 
+def load_strategies():
+    out = []
+    for p in sorted(STRATS.glob("*.json")):
+        j = load_json(p, None)
+        if j and isinstance(j.get("params"), dict):
+            out.append({"id": j.get("id", p.stem), "name": j.get("name", p.stem),
+                        "description": j.get("description", ""), "params": j["params"]})
+    out.sort(key=lambda s: (s["id"] != "default", s["id"]))
+    if not out:
+        sys.exit("strategies/ 裡沒有策略檔")
+    return out
+
+
+def r2(v, d=2):
+    return None if v is None or (isinstance(v, float) and math.isnan(v)) else round(v, d)
+
+
+def analyze(rows, strategies, fund):
+    """一檔股票的所有策略共用資料。"""
+    n = len(rows)
+    L = n - 1
+    C = [r[4] for r in rows]
+    V = [r[5] for r in rows]
+    c = C[L]
+    base = {"close": c, "chg": r2((c / C[L - 1] - 1) * 100) if n > 1 and C[L - 1] else 0,
+            "av": round(sum(V[-20:]) / min(20, n))}
+    pe, pb, dy = fund or (None, None, None)
+    base["pe"], base["pb"], base["dy"] = pe, pb, dy
+    if fund:
+        # 本益比空白＝近四季虧損，EPS 記為 0 以下（不會通過門檻）
+        base["eps"] = r2(c / pe) if pe else -1
+        base["roe"] = r2(pb / pe * 100, 1) if pe and pb else (-1 if pb is not None else None)
+    else:
+        base["eps"] = base["roe"] = None
+    if n < 100:  # 與原專案相同：價格資料不足 100 天就 SKIP
+        base["short"] = 1
+        return base
+    ind = S.indicators(rows)
+    states = [S.tech_state(ind, i) for i in range(n)]
+    pats, bonus = S.volume_patterns(rows)
+    hi252 = max(r[2] for r in rows[-252:])
+    base.update({
+        "ts": states[L], "vb": bonus, "vp": pats,
+        "bt": {s["id"]: list(S.signal_backtest(rows, states, s["params"])) for s in strategies},
+        "c5": r2((c / C[-6] - 1) * 100), "c20": r2((c / C[-21] - 1) * 100),
+        "vr": r2(sum(V[-5:]) / 5 / (sum(V[-20:]) / 20), 2) if sum(V[-20:]) else 1,
+        "fh": r2((c / hi252 - 1) * 100, 1),
+        "a20": int(c > ind["ma20"][L]), "a60": int(c > ind["ma60"][L]),
+        "bbHi": int(c > ind["bbU"][L]),
+    })
+    return base
+
+
 def build():
     files = sorted(RAW.glob("*.json"))[-KEEP_DAYS:]
     if not files:
@@ -393,6 +443,9 @@ def build():
     days = [load_json(p, None) for p in files]
     days = [d for d in days if d]
     latest = days[-1]["date"]
+    strategies = load_strategies()
+    fund_doc = load_json(FUND, {})
+    fund = fund_doc.get("stocks", {})
     series, meta = {}, {}
     for day in days:
         for code, s in day["stocks"].items():
@@ -406,23 +459,33 @@ def build():
         src = ROOT / name
         if src.exists():
             write_page(src, SITE / name)
+    shutil.copy(ROOT / "engine.js", SITE / "engine.js")
+    # 大盤：加權指數；抓不到就用 0050 收盤代替
+    taiex = load_json(TAIEX, {})
+    dates = [d["date"] for d in days]
+    mkt = [taiex.get(d) for d in dates]
+    mkt_src = "加權指數"
+    if sum(v is not None for v in mkt) < len(dates) * 0.9 and "0050" in series:
+        px = {r[0]: r[4] for r in series["0050"]}
+        mkt, mkt_src = [px.get(d) for d in dates], "元大台灣50（0050）收盤，加權指數資料不足時的替代"
+    (SITE / "data" / "market.json").write_text(json.dumps({"src": mkt_src, "d": dates, "c": mkt}, separators=(",", ":")), "utf-8")
     stocks = []
+    t1 = time.time()
     for code, rows in series.items():
         # 收一般股票（4 碼、非 0 開頭）與 ETF（00 開頭，可帶 L/R/B 等字尾）；排除權證、牛熊證
         kind = "ETF" if ETF_RE.match(code) else ("股票" if STOCK_RE.match(code) else None)
         if not kind or rows[-1][0] != latest or len(rows) < 2:
             continue
-        has_chips = any(r[6] is not None for r in rows[-5:])
-        a = analyze(rows, has_chips)
-        if a["big"]:
-            a["big"].pop("i")
-        name, mkt = meta[code]
-        stocks.append({"code": code, "name": name, "m": mkt, "k": kind, **a})
+        a = analyze(rows, strategies, None if kind == "ETF" else fund.get(code))
+        name, m = meta[code]
+        stocks.append({"code": code, "name": name, "m": m, "k": kind,
+                       "hasChips": int(any(r[6] is not None for r in rows[-5:])), **a})
         (out_s / f"{code}.json").write_text(json.dumps(rows, ensure_ascii=False, separators=(",", ":")), "utf-8")
-    doc = {"date": latest, "days": len(days), "generated": dt.datetime.now(TZ).isoformat(timespec="minutes"), "stocks": stocks}
+    doc = {"date": latest, "days": len(days), "generated": dt.datetime.now(TZ).isoformat(timespec="minutes"),
+           "fundDate": fund_doc.get("date"), "strategies": strategies, "stocks": stocks}
     (SITE / "data" / "screener.json").write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")), "utf-8")
     (SITE / ".nojekyll").write_text("")
-    print(f"完成：{latest}，{len(stocks)} 檔，{len(days)} 個交易日")
+    print(f"完成：{latest}，{len(stocks)} 檔，{len(days)} 個交易日，{len(strategies)} 個策略，計算 {time.time() - t1:.0f} 秒")
 
 
 if __name__ == "__main__":
@@ -431,4 +494,9 @@ if __name__ == "__main__":
     args = ap.parse_args()
     if not args.no_fetch:
         update_raw()
+        for fn in (update_fund, update_taiex):
+            try:
+                fn()
+            except Exception as e:  # 輔助資料失敗不影響主流程
+                print(f"  {fn.__name__} 失敗：{type(e).__name__} {e}", file=sys.stderr)
     build()
