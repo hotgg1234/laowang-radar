@@ -185,7 +185,23 @@ def tpex_chips(d):
         ti = find(f, has("投信"), has("買賣超"))
         if ic >= 0 and fi >= 0 and ti >= 0:
             return {str(r[ic]).strip(): (lots(r[fi]), lots(r[ti])) for r in t.get("data", [])}
+    debug_once("tpex_chips", j)
     return None
+
+
+_debugged = set()
+
+
+def debug_once(name, j):
+    """資料格式對不上時，印出一次回應結構，方便從 Actions 紀錄修正解析。"""
+    if name in _debugged:
+        return
+    _debugged.add(name)
+    info = {"keys": list(j.keys()), "stat": j.get("stat")}
+    for i, t in enumerate(tables_of(j)[:4]):
+        info[f"table{i}"] = {"title": t.get("title"), "fields": t.get("fields"),
+                             "row0": (t.get("data") or [None])[0]}
+    print(f"[debug] {name} 格式：" + json.dumps(info, ensure_ascii=False)[:3000])
 
 
 def fetch_day(d, old=None):
