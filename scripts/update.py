@@ -16,6 +16,7 @@ import argparse
 import datetime as dt
 import json
 import math
+import re
 import shutil
 import sys
 import time
@@ -27,6 +28,8 @@ RAW = ROOT / "data" / "raw"
 HOLIDAYS = ROOT / "data" / "holidays.json"
 SITE = ROOT / "_site"
 TZ = ZoneInfo("Asia/Taipei")
+STOCK_RE = re.compile(r"^[1-9]\d{3}$")
+ETF_RE = re.compile(r"^00\d{2,4}[A-Z]?$")
 
 TARGET_DAYS = 500      # 要保留的交易日數（約 2 年，供回測使用）
 KEEP_DAYS = 520        # 超過就刪除最舊的原始檔
@@ -405,15 +408,16 @@ def build():
             write_page(src, SITE / name)
     stocks = []
     for code, rows in series.items():
-        # 只收一般股票：4 碼、非 0 開頭（排除 ETF、權證），且最新交易日有成交
-        if len(code) != 4 or not code.isdigit() or code.startswith("0") or rows[-1][0] != latest or len(rows) < 2:
+        # 收一般股票（4 碼、非 0 開頭）與 ETF（00 開頭，可帶 L/R/B 等字尾）；排除權證、牛熊證
+        kind = "ETF" if ETF_RE.match(code) else ("股票" if STOCK_RE.match(code) else None)
+        if not kind or rows[-1][0] != latest or len(rows) < 2:
             continue
         has_chips = any(r[6] is not None for r in rows[-5:])
         a = analyze(rows, has_chips)
         if a["big"]:
             a["big"].pop("i")
         name, mkt = meta[code]
-        stocks.append({"code": code, "name": name, "m": mkt, **a})
+        stocks.append({"code": code, "name": name, "m": mkt, "k": kind, **a})
         (out_s / f"{code}.json").write_text(json.dumps(rows, ensure_ascii=False, separators=(",", ":")), "utf-8")
     doc = {"date": latest, "days": len(days), "generated": dt.datetime.now(TZ).isoformat(timespec="minutes"), "stocks": stocks}
     (SITE / "data" / "screener.json").write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")), "utf-8")

@@ -101,6 +101,7 @@ pre{font-family:var(--f-num);font-size:12px;background:var(--chip);padding:10px;
 .nav{display:flex;gap:6px;flex-wrap:wrap}
 .nav a{color:var(--ink);text-decoration:none;padding:5px 12px;border:1px solid var(--line);border-radius:5px;background:var(--panel);white-space:nowrap;font-size:13px}
 .nav a[aria-current="page"]{background:var(--ink);color:var(--panel);border-color:var(--ink);font-weight:700}
+.etf{font-size:10.5px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:0 4px}
 .filters{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:12px 14px}
 .filters label{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted)}
 .filters input,.filters select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:6px 8px}
@@ -114,7 +115,7 @@ pre{font-family:var(--f-num);font-size:12px;background:var(--chip);padding:10px;
   <header>
     <div>
       <h1>老王選股<span>雷達</span></h1>
-      <p class="sub">把王倚隆（老王）常用的「均線、大量、基期、籌碼」規則寫成條件，每天收盤後自動掃過上市櫃股票，排出最符合的標的。</p>
+      <p class="sub">把王倚隆（老王）常用的「均線、大量、基期、籌碼」規則寫成條件，每天收盤後自動掃過上市櫃股票與 ETF，排出最符合的標的。</p>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
     <nav class="nav" aria-label="網站頁面"><a href="./" aria-current="page">選股雷達</a><a href="backtest.html">策略回測</a></nav>
@@ -149,6 +150,7 @@ pre{font-family:var(--f-num);font-size:12px;background:var(--chip);padding:10px;
       <div class="panel filters">
         <label for="q">搜尋 <input id="q" type="search" placeholder="代號或名稱，例如 2330" autocomplete="off"></label>
         <label for="mkt">市場 <select id="mkt"><option value="">全部</option><option>上市</option><option>上櫃</option></select></label>
+        <label for="kind">類別 <select id="kind"><option value="">全部</option><option>股票</option><option>ETF</option></select></label>
         <label for="minVol">20 日均量 <select id="minVol"><option value="0">不限</option><option value="300">≥ 300 張</option><option value="1000" selected>≥ 1,000 張</option><option value="3000">≥ 3,000 張</option><option value="10000">≥ 10,000 張</option></select></label>
       </div>
       <div class="panel tablebox">
@@ -212,7 +214,7 @@ const NEG=[
 ];
 const SAMPLE_LABEL="範例資料（模擬，非真實行情）";
 const state={on:new Set([...POS,...NEG].map(r=>r.id)),mode:"rank",list:[],full:new Map(),sel:null,source:"sample",
-  q:"",mkt:"",minVol:1000,limit:100,lastDate:"",live:null};
+  q:"",mkt:"",kind:"",minVol:1000,limit:100,lastDate:"",live:null};
 try{const s=JSON.parse(localStorage.getItem("lw-rules")||"null");if(Array.isArray(s))state.on=new Set(s);}catch(e){}
 try{const v=localStorage.getItem("lw-minvol");if(v!==null)state.minVol=+v;}catch(e){}
 
@@ -274,7 +276,7 @@ function analyze(st){
   else{sig.chips=false;na.chips="沒有外資、投信資料";}
   const stop=big&&C[L]>=big.low?{v:big.low,why:"大量低點（"+big.date.slice(5)+"）"}:have20?{v:M[20][L],why:"20 日均線"}:null;
   let av=0;const tail=V.slice(-20);tail.forEach(v=>av+=v);av=tail.length?av/tail.length:0;
-  return {code:st.code,name:st.name,m:st.m||"",sig,na,big,stop,close:C[L],chg:n>1&&C[L-1]?(C[L]/C[L-1]-1)*100:0,
+  return {code:st.code,name:st.name,m:st.m||"",k:st.k||"",sig,na,big,stop,close:C[L],chg:n>1&&C[L-1]?(C[L]/C[L-1]-1)*100:0,
     vr:vAvg?V[L]/vAvg:0,base:basePos(C[L]),f5,t5,hasChips:!!st.hasChips,av,M,rows:R};
 }
 function score(a){let s=0,max=0;for(const r of POS){if(!state.on.has(r.id))continue;max+=r.w;if(a.sig[r.id])s+=r.w;}for(const r of NEG){if(state.on.has(r.id)&&a.sig[r.id])s-=r.w;}return {s,max};}
@@ -290,6 +292,7 @@ $("modeRank").onclick=()=>setMode("rank");$("modeAll").onclick=()=>setMode("all"
 $("minVol").value=String(state.minVol);if($("minVol").value!==String(state.minVol)){state.minVol=1000;$("minVol").value="1000";}
 let qt;$("q").addEventListener("input",e=>{clearTimeout(qt);qt=setTimeout(()=>{state.q=e.target.value.trim();state.limit=100;render();},150);});
 $("mkt").addEventListener("change",e=>{state.mkt=e.target.value;state.limit=100;render();});
+$("kind").addEventListener("change",e=>{state.kind=e.target.value;state.limit=100;render();});
 $("minVol").addEventListener("change",e=>{state.minVol=+e.target.value;try{localStorage.setItem("lw-minvol",e.target.value);}catch(err){}state.limit=100;render();});
 $("moreBtn").onclick=()=>{state.limit+=100;render();};
 
@@ -299,7 +302,7 @@ const nf=v=>Math.round(v).toLocaleString("zh-TW");
 
 function filtered(){
   const q=state.q.toLowerCase();
-  let res=state.list.filter(a=>(!q||a.code.toLowerCase().startsWith(q)||a.name.toLowerCase().includes(q))&&(!state.mkt||a.m===state.mkt)&&(state.source!=="live"||a.av>=state.minVol));
+  let res=state.list.filter(a=>(!q||a.code.toLowerCase().startsWith(q)||a.name.toLowerCase().includes(q))&&(!state.mkt||a.m===state.mkt)&&(!state.kind||(a.k||"股票")===state.kind)&&(state.source!=="live"||a.av>=state.minVol));
   const posOn=POS.filter(r=>state.on.has(r.id));
   if(state.mode==="all")res=res.filter(a=>posOn.every(r=>a.sig[r.id]));
   return res.map(a=>({a,...score(a)})).sort((x,y)=>y.s-x.s||y.a.chg-x.a.chg);
@@ -317,7 +320,7 @@ function render(){
     const pct=max?Math.max(0,s)/max*100:0;
     return `<tr data-code="${esc(a.code)}" class="${state.sel===a.code?"sel":""}" tabindex="0">
       <td><b>${esc(a.name)}</b> <span class="code">${esc(a.code)}</span></td>
-      <td class="code">${esc(a.m)}</td>
+      <td class="code">${esc(a.m)}${a.k==="ETF"?' <span class="etf">ETF</span>':""}</td>
       <td class="num">${fmt(a.close)}</td>
       <td class="num ${a.chg>0?"up":a.chg<0?"down":""}">${a.chg>0?"+":""}${fmt(a.chg)}</td>
       <td class="num">${fmt(a.vr,1)}×</td>
@@ -339,7 +342,7 @@ async function getFull(code){
   if(!r.ok)throw new Error("HTTP "+r.status);
   const raw=await r.json();
   const rows=raw.map(x=>({date:x[0],open:x[1],high:x[2],low:x[3],close:x[4],volume:x[5],foreign:x[6],trust:x[7]}));
-  const a=analyze({code,name:s?s.name:code,m:s?s.m:"",rows,hasChips:s?s.hasChips:false});
+  const a=analyze({code,name:s?s.name:code,m:s?s.m:"",k:s?s.k:"",rows,hasChips:s?s.hasChips:false});
   state.full.set(code,a);return a;
 }
 let detailToken=0;
@@ -356,7 +359,7 @@ async function renderDetail(){
   const chk=(r,neg)=>{const na=a.na[r.id];const hit=a.sig[r.id];const cls=na?"na":(neg?(hit?"bad":"ok"):(hit?"ok":"na"));const ic=na?"–":(neg?(hit?"✕":"✓"):(hit?"✓":"·"));const t=na?(typeof na==="string"?na:"資料天數不足"):(neg?(hit?"出現警訊":"未出現"):(hit?"符合":"未符合"));return `<div class="check ${cls}"><span class="ic">${ic}</span><div><b>${r.name}</b><span>${t}・${r.desc}</span></div></div>`;};
   const big=a.big;
   $("detail").innerHTML=`
-    <div class="dhead"><div><h3>${esc(a.name)} <span class="code">${esc(a.code)}${a.m?"・"+esc(a.m):""}</span></h3><span class="code">分數 ${s}・基期 ${Math.round(a.base*100)}%・20 日均量 ${nf(a.av)} 張</span></div>
+    <div class="dhead"><div><h3>${esc(a.name)} <span class="code">${esc(a.code)}${a.m?"・"+esc(a.m):""}${a.k==="ETF"?"・ETF":""}</span></h3><span class="code">分數 ${s}・基期 ${Math.round(a.base*100)}%・20 日均量 ${nf(a.av)} 張</span></div>
       <div class="price ${a.chg>0?"up":a.chg<0?"down":""}">${fmt(a.close)} <small>${a.chg>0?"+":""}${fmt(a.chg)}%</small></div></div>
     <div class="keyline">
       <span>大量 K 棒：${big?`<b>${big.date}</b>（${fmt(big.ratio,1)} 倍均量）`:"近 30 日無"}</span>

@@ -91,7 +91,7 @@ tbody tr.click:hover{background:var(--chip)}
   <header>
     <div>
       <h1>老王策略<span>回測室</span></h1>
-      <p class="sub">用老王的進出場規則回測過去兩年的台股：收盤出現訊號，隔天開盤成交，扣掉手續費與證交稅。</p>
+      <p class="sub">用老王的進出場規則回測過去兩年的台股與 ETF：收盤出現訊號，隔天開盤成交，扣掉手續費與證交稅。</p>
     </div>
     <nav aria-label="網站頁面"><a href="./">選股雷達</a><a href="backtest.html" aria-current="page">策略回測</a></nav>
   </header>
@@ -105,13 +105,14 @@ tbody tr.click:hover{background:var(--chip)}
 
       <div id="singleCfg" style="display:flex;flex-direction:column;gap:6px">
         <h2>標的</h2>
-        <input id="stock" type="search" list="stockList" placeholder="輸入代號或名稱，例如 2330" autocomplete="off">
+        <input id="stock" type="search" list="stockList" placeholder="輸入代號或名稱，例如 2330、0050" autocomplete="off">
         <datalist id="stockList"></datalist>
       </div>
       <div id="batchCfg" hidden style="display:flex;flex-direction:column;gap:8px">
         <h2>樣本</h2>
         <label class="field" for="bN">20 日均量最大的前幾檔<select id="bN"><option>50</option><option selected>100</option><option>200</option><option>400</option></select></label>
         <label class="field" for="bMkt">市場<select id="bMkt"><option value="">全部</option><option>上市</option><option>上櫃</option></select></label>
+        <label class="field" for="bKind">類別<select id="bKind"><option value="">全部</option><option selected>股票</option><option>ETF</option></select></label>
       </div>
 
       <h2>進場（勾選的全部成立）</h2>
@@ -126,7 +127,7 @@ tbody tr.click:hover{background:var(--chip)}
 
       <h2>交易成本</h2>
       <label class="field" for="disc"><span>手續費折數<small>原價 0.1425%，6 折填 6</small></span><input id="disc" type="number" min="0" max="10" step="0.1" value="6"></label>
-      <p class="rule-note">賣出另扣證交稅 0.3%。手續費不計最低 20 元。</p>
+      <p class="rule-note">賣出另扣證交稅：股票 0.3%、ETF 0.1%、債券 ETF（代號 B 結尾）免徵。手續費不計最低 20 元。</p>
 
       <button class="btn primary" id="run">執行回測</button>
       <div id="msg" role="status" class="code"></div>
@@ -169,7 +170,7 @@ $("entryOpts").innerHTML=ENTRY.map(o=>optHTML(o,"e")).join("");
 $("exitOpts").innerHTML=EXIT.map(o=>optHTML(o,"x")).join("");
 
 const state={mode:"single",list:[],date:"",cache:new Map(),busy:false};
-const SAVE=["noHighBase","tp","sl","hold","disc","bN","bMkt",...ENTRY.map(o=>"e-"+o.id),...EXIT.map(o=>"x-"+o.id)];
+const SAVE=["noHighBase","tp","sl","hold","disc","bN","bMkt","bKind",...ENTRY.map(o=>"e-"+o.id),...EXIT.map(o=>"x-"+o.id)];
 try{const s=JSON.parse(localStorage.getItem("lw-bt")||"null");if(s)SAVE.forEach(k=>{if(k in s){const el=$(k);el.type==="checkbox"?el.checked=s[k]:el.value=s[k];}});}catch(e){}
 function saveCfg(){try{const o={};SAVE.forEach(k=>{const el=$(k);o[k]=el.type==="checkbox"?el.checked:el.value;});localStorage.setItem("lw-bt",JSON.stringify(o));}catch(e){}}
 
@@ -212,6 +213,7 @@ function cfg(){
 }
 
 const START=62;
+const taxOf=s=>s&&s.k==="ETF"?(/B$/.test(s.code)?0:0.001):0.003;
 function backtest(R,hasChips,c){
   const {S,M}=signals(R,hasChips);const n=R.length;const C=R.map(r=>r.close);
   const trades=[];let pos=null;let eq=1;const curve=new Array(n).fill(NaN);const bh=new Array(n).fill(NaN);
@@ -274,14 +276,14 @@ async function runSingle(){
   let R;try{R=await loadSeries(s.code);}catch(e){$("out").innerHTML='<div class="panel empty">無法載入這檔的資料，請稍後重新整理。</div>';return;}
   const c=cfg();
   if(R.length<START+20){$("out").innerHTML=`<div class="panel empty">${esc(s.name)} 目前只有 ${R.length} 個交易日的資料，至少要 ${START+20} 天才能回測。資料每天會自動補長。</div>`;return;}
-  const res=backtest(R,s.hasChips,c);lastSingle={s,R,res};lastBatch=null;
+  const res=backtest(R,s.hasChips,{...c,tax:taxOf(s)});lastSingle={s,R,res};lastBatch=null;
   const t=res.trades;
   const warn=c.entry.length?"":"<div class='warn'>沒有勾選任何進場條件，所以沒有交易。</div>";
   const fewWarn=c.entry.length&&res.n<5?`<div class='warn'>只有 ${res.n} 筆完成的交易，樣本太少，勝率與報酬參考價值有限。試試多檔批次。</div>`:"";
   const feeWarn=c.fee===0?"<div class='warn'>手續費設為 0，回測結果會比實際好。</div>":"";
   $("out").innerHTML=`
   <div class="panel">
-    <div class="head"><h3>${esc(s.name)} <span class="code">${esc(s.code)}・${esc(s.m||"")}</span></h3><span class="code">${R[START].date} ～ ${R[R.length-1].date}・${R.length-START} 個交易日</span></div>
+    <div class="head"><h3>${esc(s.name)} <span class="code">${esc(s.code)}・${esc(s.m||"")}${s.k==="ETF"?"・ETF":""}</span></h3><span class="code">${R[START].date} ～ ${R[R.length-1].date}・${R.length-START} 個交易日</span></div>
     <div class="stats">
       ${statHTML("策略總報酬",pct(res.total),"年化 "+pct(res.cagr),cls(res.total))}
       ${statHTML("買進持有",pct(res.bhRet),"同期間、含成本",cls(res.bhRet))}
@@ -329,11 +331,11 @@ function drawSingle(){
 }
 
 async function runBatch(){
-  const N=+$("bN").value,mkt=$("bMkt").value;const c=cfg();
-  const pool=state.list.filter(s=>!mkt||s.m===mkt).sort((a,b)=>b.av-a.av).slice(0,N);
+  const N=+$("bN").value,mkt=$("bMkt").value,kind=$("bKind").value;const c=cfg();
+  const pool=state.list.filter(s=>(!mkt||s.m===mkt)&&(!kind||(s.k||"股票")===kind)).sort((a,b)=>b.av-a.av).slice(0,N);
   $("out").innerHTML=`<div class="panel chartwrap"><div class="code" id="pt">載入 0 / ${pool.length} 檔…</div><div class="prog"><i id="pb"></i></div></div>`;
   const results=[];let done=0;let idx=0;
-  async function worker(){while(idx<pool.length){const s=pool[idx++];try{const R=await loadSeries(s.code);if(R.length>=START+20)results.push({s,res:backtest(R,s.hasChips,c),R});}catch(e){}done++;const pb=$("pb"),pt=$("pt");if(pb)pb.style.width=(done/pool.length*100)+"%";if(pt)pt.textContent=`載入 ${done} / ${pool.length} 檔…`;}}
+  async function worker(){while(idx<pool.length){const s=pool[idx++];try{const R=await loadSeries(s.code);if(R.length>=START+20)results.push({s,res:backtest(R,s.hasChips,{...c,tax:taxOf(s)}),R});}catch(e){}done++;const pb=$("pb"),pt=$("pt");if(pb)pb.style.width=(done/pool.length*100)+"%";if(pt)pt.textContent=`載入 ${done} / ${pool.length} 檔…`;}}
   await Promise.all(Array.from({length:6},worker));
   lastBatch={results,c};lastSingle=null;renderBatch();
 }
