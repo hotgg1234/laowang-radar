@@ -34,6 +34,8 @@ MAX_LOOKBACK = 760     # 往回最多找幾個日曆天
 MAX_NEW_PER_RUN = 150  # 每次執行最多新抓幾個交易日，避免超過 GitHub Actions 時限；不足的下次再補
 SLEEP = 4.0            # 每次請求間隔秒數，證交所每 5 秒超過 3 次會封鎖 IP
 RETRY_WINDOW = 7       # 幾天內缺漏的資料會再補抓
+FETCH_BUDGET = 95 * 60 # 抓資料最多花幾秒；時間到就先存檔、建網站，剩下的下次再補
+_t0 = time.time()
 
 UA = {"User-Agent": "Mozilla/5.0 (laowang-radar; daily close data)",
       "Accept": "application/json,text/plain,*/*"}
@@ -44,13 +46,13 @@ _session = None
 _last = 0.0
 
 
-def get_json(url):
+def get_json(url, tries=4):
     global _session, _last
     import requests
     if _session is None:
         _session = requests.Session()
         _session.headers.update(UA)
-    for attempt in range(4):
+    for attempt in range(tries):
         wait = SLEEP - (time.time() - _last)
         if wait > 0:
             time.sleep(wait)
@@ -62,7 +64,8 @@ def get_json(url):
             print(f"  HTTP {r.status_code}: {url}", file=sys.stderr)
         except Exception as e:  # network error or non-JSON (被封鎖時會回 HTML)
             print(f"  error {type(e).__name__}: {url}", file=sys.stderr)
-        time.sleep(10 * (attempt + 1))
+        if attempt < tries - 1:
+            time.sleep(10 * (attempt + 1))
     return None
 
 
@@ -133,7 +136,7 @@ def twse_quotes(d):
 
 
 def twse_chips(d):
-    j = get_json(f"https://www.twse.com.tw/rwd/zh/fund/T86?date={d:%Y%m%d}&selectType=ALLBUT0999&response=json")
+    j = get_json(f"https://www.twse.com.tw/rwd/zh/fund/T86?date={d:%Y%m%d}&selectType=ALLBUT0999&response=json", tries=2)
     if not j or str(j.get("stat", "")).upper() != "OK":
         return None
     for t in tables_of(j):
@@ -149,7 +152,7 @@ def twse_chips(d):
 
 
 def tpex_quotes(d):
-    j = get_json(f"https://www.tpex.org.tw/www/zh-tw/afterTrading/dailyQuotes?date={d:%Y/%m/%d}&type=EW&response=json")
+    j = get_json(f"https://www.tpex.org.tw/www/zh-tw/afterTrading/dailyQuotes?date={d:%Y/%m/%d}&type=EW&response=json", tries=2)
     if not j:
         return None
     for t in tables_of(j):
@@ -172,7 +175,7 @@ def tpex_quotes(d):
 
 
 def tpex_chips(d):
-    j = get_json(f"https://www.tpex.org.tw/www/zh-tw/insti/dailyTrade?type=Daily&sect=EW&date={d:%Y/%m/%d}&response=json")
+    j = get_json(f"https://www.tpex.org.tw/www/zh-tw/insti/dailyTrade?type=Daily&sect=EW&date={d:%Y/%m/%d}&response=json", tries=2)
     if not j:
         return None
     for t in tables_of(j):
@@ -230,6 +233,9 @@ def update_raw():
     d = today
     for _ in range(MAX_LOOKBACK):
         if have >= TARGET_DAYS or fetched >= MAX_NEW_PER_RUN:
+            break
+        if time.time() - _t0 > FETCH_BUDGET:
+            print("已達本次抓取時間上限，剩下的下次再補")
             break
         p = RAW / f"{d:%Y%m%d}.json"
         if d.weekday() >= 5 or d.isoformat() in holidays:
