@@ -1,4 +1,4 @@
-<title>老王策略回測室</title>
+<title>策略回測室</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap">
@@ -25,18 +25,17 @@ h1{font-size:30px;font-weight:900;margin:0;letter-spacing:.02em;text-wrap:balanc
 h1 span{color:var(--up)}
 .sub{color:var(--muted);margin:2px 0 0;max-width:64ch}
 nav{display:flex;gap:6px;flex-wrap:wrap}
-nav a{color:var(--ink);text-decoration:none;padding:6px 12px;border:1px solid var(--line);border-radius:5px;background:var(--panel);white-space:nowrap}
+nav a{color:var(--ink);text-decoration:none;padding:5px 12px;border:1px solid var(--line);border-radius:5px;background:var(--panel);white-space:nowrap;font-size:13px}
 nav a[aria-current="page"]{background:var(--ink);color:var(--panel);border-color:var(--ink);font-weight:700}
 .grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;align-items:start}
 @media (max-width:880px){.grid{grid-template-columns:minmax(0,1fr)}}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:6px}
-.rail{padding:14px;display:flex;flex-direction:column;gap:14px}
+.rail{padding:14px;display:flex;flex-direction:column;gap:12px}
 h2{font-size:13px;letter-spacing:.08em;color:var(--muted);margin:0;font-weight:700}
 .opts{display:flex;flex-direction:column;gap:2px}
-.opt{display:grid;grid-template-columns:18px 1fr;gap:8px;align-items:start;padding:6px;border-radius:4px;cursor:pointer}
+.opt{display:grid;grid-template-columns:18px 1fr;gap:8px;align-items:start;padding:5px 6px;border-radius:4px;cursor:pointer}
 .opt:hover{background:var(--chip)}
 .opt input{margin-top:4px;accent-color:var(--up)}
-.opt.x input{accent-color:var(--down)}
 .opt b{font-weight:700;display:block}
 .opt small{color:var(--muted);font-size:12px;line-height:1.4;display:block}
 .field{display:grid;grid-template-columns:1fr 92px;gap:8px;align-items:center;font-size:13px}
@@ -49,8 +48,8 @@ input[type=number]{font-family:var(--f-num);text-align:right}
 .btn{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 12px;border-radius:5px;cursor:pointer}
 .btn.primary{background:var(--up);border-color:var(--up);color:#fff;font-weight:700}
 .btn:disabled{opacity:.55;cursor:default}
-button:focus-visible,input:focus-visible,select:focus-visible,label.opt:focus-within,a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.rule-note{font-size:12px;color:var(--muted);background:var(--chip);border-radius:5px;padding:8px 10px}
+button:focus-visible,input:focus-visible,select:focus-visible,label.opt:focus-within,a:focus-visible,tr:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.rule-note{font-size:12px;color:var(--muted);background:var(--chip);border-radius:5px;padding:8px 10px;margin:0}
 .main{display:flex;flex-direction:column;gap:18px;min-width:0}
 .head{padding:14px 16px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
 .head h3{margin:0;font-size:20px}
@@ -61,6 +60,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,label.opt:focus-wi
 .stat .l{font-size:12px;color:var(--muted)}
 .stat .v{font-family:var(--f-num);font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
 .stat .s{font-size:11.5px;color:var(--muted)}
+.sigline{padding:10px 16px;font-size:13px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px 18px}
+.sigline b{font-family:var(--f-num)}
 .up{color:var(--up)} .down{color:var(--down)}
 .chartwrap{padding:14px 16px;display:flex;flex-direction:column;gap:8px}
 .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted)}
@@ -84,14 +85,15 @@ tbody tr.click:hover{background:var(--chip)}
 .warn{font-size:12.5px;color:var(--amber);padding:0 16px 12px}
 .foot{font-size:12px;color:var(--muted);max-width:86ch;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
 .foot p{margin:0}
+.foot a{color:var(--accent)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
 <div class="wrap">
   <header>
     <div>
-      <h1>老王策略<span>回測室</span></h1>
-      <p class="sub">用老王的進出場規則回測過去兩年的台股與 ETF：收盤出現訊號，隔天開盤成交，扣掉手續費與證交稅。</p>
+      <h1>策略<span>回測室</span></h1>
+      <p class="sub">用選股雷達的策略回測上市櫃股票與 ETF：技術分達門檻就在隔天開盤買進，碰到停利、停損或持有期滿出場，扣掉手續費與證交稅。</p>
     </div>
     <nav aria-label="網站頁面"><a href="./">選股雷達</a><a href="backtest.html" aria-current="page">策略回測</a></nav>
   </header>
@@ -102,7 +104,6 @@ tbody tr.click:hover{background:var(--chip)}
         <button id="mSingle" aria-pressed="true">單檔回測</button>
         <button id="mBatch" aria-pressed="false">多檔批次</button>
       </div>
-
       <div id="singleCfg" style="display:flex;flex-direction:column;gap:6px">
         <h2>標的</h2>
         <input id="stock" type="search" list="stockList" placeholder="輸入代號或名稱，例如 2330、0050" autocomplete="off">
@@ -115,15 +116,24 @@ tbody tr.click:hover{background:var(--chip)}
         <label class="field" for="bKind">類別<select id="bKind"><option value="">全部</option><option selected>股票</option><option>ETF</option></select></label>
       </div>
 
-      <h2>進場（勾選的全部成立）</h2>
-      <div class="opts" id="entryOpts"></div>
-      <label class="opt x"><input type="checkbox" id="noHighBase" checked><span><b>高基期爆量時不進場</b><small>大量出現在半年區間 75% 以上就略過</small></span></label>
+      <h2>從策略帶入</h2>
+      <select id="preset" aria-label="帶入策略設定"></select>
 
-      <h2>出場（任一成立）</h2>
-      <div class="opts" id="exitOpts"></div>
-      <label class="field" for="tp"><span>停利 %<small>收盤漲超過就出場，空白不使用</small></span><input id="tp" type="number" min="1" step="1" placeholder="—"></label>
-      <label class="field" for="sl"><span>停損 %<small>收盤跌超過就出場</small></span><input id="sl" type="number" min="1" step="1" placeholder="—"></label>
-      <label class="field" for="hold"><span>最長持有天數<small>交易日</small></span><input id="hold" type="number" min="1" step="1" placeholder="—"></label>
+      <h2>進場：技術分達門檻</h2>
+      <div class="opts" id="swOpts"></div>
+      <label class="field" for="minSig"><span>技術分至少<small>0～100，四訊號平分</small></span><input id="minSig" type="number" min="0" max="100" step="5"></label>
+
+      <h2>進場過濾</h2>
+      <label class="opt"><input type="checkbox" id="mktOn"><span><b>大盤在均線上才進場</b><small>加權指數收盤高於下方天數的均線</small></span></label>
+      <label class="field" for="mktMa"><span>大盤均線天數</span><input id="mktMa" type="number" min="5" max="120" step="1"></label>
+      <label class="opt"><input type="checkbox" id="fundOn"><span><b>基本面通過才進場</b><small>用今天的本益比判斷，過去的交易也套用，會偏樂觀</small></span></label>
+      <label class="field" for="eps"><span>EPS 大於</span><input id="eps" type="number" step="0.5"></label>
+      <label class="field" for="roe"><span>ROE 大於 %</span><input id="roe" type="number" step="1"></label>
+
+      <h2>出場（先到先出）</h2>
+      <label class="field" for="tp"><span>停利 %<small>盤中碰到就出場</small></span><input id="tp" type="number" min="1" step="1"></label>
+      <label class="field" for="sl"><span>停損 %<small>盤中碰到就出場，優先於停利</small></span><input id="sl" type="number" min="1" step="1"></label>
+      <label class="field" for="hold"><span>最長持有天數<small>交易日，到期以收盤賣出</small></span><input id="hold" type="number" min="1" step="1"></label>
 
       <h2>交易成本</h2>
       <label class="field" for="disc"><span>手續費折數<small>原價 0.1425%，6 折填 6</small></span><input id="disc" type="number" min="0" max="10" step="0.1" value="6"></label>
@@ -137,127 +147,65 @@ tbody tr.click:hover{background:var(--chip)}
   </div>
 
   <section class="panel foot">
-    <p><b>規則說明</b>　訊號都在收盤後判斷，隔天以開盤價買進或賣出，避免用到當天還不知道的價格。停損參考價在進場時決定：最近 30 日有大量 K 棒且收盤仍在其低點之上，就用大量低點，否則用 20 日均線。停利、停損 % 與持有天數都以收盤價判斷。</p>
-    <p>每次交易都投入全部資金、不加碼、不放空。股價未還原除權息，除權息日的跳空會被算成虧損，殖利率高的股票報酬會被低估。</p>
-    <p>回測只代表過去。兩年的樣本不長，條件調得越細越容易只是剛好符合過去，請搭配多檔批次看整體結果。本頁不構成投資建議。</p>
+    <p><b>規則說明</b>　訊號在收盤後判斷，隔天以開盤價買進。持有期間每天先看最低價有沒有碰到停損價、再看最高價有沒有碰到停利價（同一天都碰到算停損，比較保守）；開盤就跳空越過的話以開盤價成交。持有滿設定天數以當天收盤賣出。一次只持有一筆、每筆投入全部資金。</p>
+    <p><b>兩種勝率</b>　「訊號勝率」是選股雷達評分用的算法（與 <a href="https://github.com/kevin801221/stock-strategies-only">stock-strategies-only</a> 相同）：每一個達門檻的日子都各自算一次，不管當時是否已經持有，也不扣成本。「交易勝率」是上方逐筆交易、扣成本後的結果。</p>
+    <p>股價未還原除權息，除權息日的跳空會被算成虧損。資料最多約 2 年，條件調得越細越容易只是剛好符合過去，請搭配多檔批次看整體結果。本頁不構成投資建議。</p>
   </section>
 </div>
 
+<script src="engine.js"></script>
 <script>
 (function(){
 "use strict";
-const ENTRY=[
-  {id:"sanyang",name:"三陽開泰",desc:"近 3 日剛站上 5/10/20 日線",on:true},
-  {id:"bigBreak",name:"突破大量高點",desc:"收盤高於最近大量 K 棒高點",on:false},
-  {id:"season",name:"站穩季線",desc:"連 3 日收在 60 日線上",on:false},
-  {id:"tangle",name:"均線糾結",desc:"5/10/20 日線差距 < 2%",on:false},
-  {id:"lowBaseVol",name:"低基期爆量",desc:"大量出現在半年區間 35% 以下",on:false},
-  {id:"chips",name:"外資投信同買",desc:"近 5 日兩者累計都買超",on:false}
-];
-const EXIT=[
-  {id:"stop",name:"跌破停損參考價",desc:"大量低點或 20 日線，進場時決定",on:true},
-  {id:"sansheng",name:"三聲無奈",desc:"收盤同時跌破 5/10/20 日線",on:true},
-  {id:"below5",name:"跌破五日線",desc:"噴出段的出場方式",on:false},
-  {id:"belowSeason",name:"跌破季線",desc:"收盤低於 60 日線",on:false}
-];
+const E=window.Engine;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const pct=(v,d=1)=>isFinite(v)?(v>0?"+":"")+(v*100).toFixed(d)+"%":"—";
 const cls=v=>v>0?"up":v<0?"down":"";
 const nf=v=>Math.round(v).toLocaleString("zh-TW");
-function optHTML(o,pre){return `<label class="opt"><input type="checkbox" id="${pre}-${o.id}" ${o.on?"checked":""}><span><b>${o.name}</b><small>${o.desc}</small></span></label>`;}
-$("entryOpts").innerHTML=ENTRY.map(o=>optHTML(o,"e")).join("");
-$("exitOpts").innerHTML=EXIT.map(o=>optHTML(o,"x")).join("");
+const DESC=["收盤 > 20 日線 > 60 日線","收盤在布林下軌上方 3% 內","K > D 且 K < 80","柱狀體 > 0 且 DIF > DEA"];
+$("swOpts").innerHTML=E.SWITCHES.map((k,i)=>`<label class="opt"><input type="checkbox" id="sw-${i}"><span><b>${E.SIG_NAMES[i]}</b><small>${DESC[i]}</small></span></label>`).join("");
 
-const state={mode:"single",list:[],date:"",cache:new Map(),busy:false};
-const SAVE=["noHighBase","tp","sl","hold","disc","bN","bMkt","bKind",...ENTRY.map(o=>"e-"+o.id),...EXIT.map(o=>"x-"+o.id)];
-try{const s=JSON.parse(localStorage.getItem("lw-bt")||"null");if(s)SAVE.forEach(k=>{if(k in s){const el=$(k);el.type==="checkbox"?el.checked=s[k]:el.value=s[k];}});}catch(e){}
-function saveCfg(){try{const o={};SAVE.forEach(k=>{const el=$(k);o[k]=el.type==="checkbox"?el.checked:el.value;});localStorage.setItem("lw-bt",JSON.stringify(o));}catch(e){}}
-
-/* ---------- per-day signals: same definitions as 選股雷達 ---------- */
-function signals(R,hasChips){
-  const n=R.length,C=R.map(r=>r.close),V=R.map(r=>r.volume);
-  const ma=k=>{const out=new Array(n).fill(NaN);let s=0;for(let i=0;i<n;i++){s+=C[i];if(i>=k)s-=C[i-k];if(i>=k-1)out[i]=s/k;}return out;};
-  const M={5:ma(5),10:ma(10),20:ma(20),60:ma(60)};
-  const above3=i=>C[i]>M[5][i]&&C[i]>M[10][i]&&C[i]>M[20][i];
-  const below3=i=>C[i]<M[5][i]&&C[i]<M[10][i]&&C[i]<M[20][i];
-  const S={sanyang:[],bigBreak:[],season:[],tangle:[],lowBaseVol:[],chips:[],highBaseVol:[],sansheng:[],below5:[],belowSeason:[],stopRef:[]};
-  for(let t=0;t<n;t++){
-    let lo=Infinity,hi=-Infinity;for(let k=Math.max(0,t-119);k<=t;k++){if(R[k].low<lo)lo=R[k].low;if(R[k].high>hi)hi=R[k].high;}
-    const base=v=>hi>lo?(v-lo)/(hi-lo):.5;
-    let big=null;
-    for(let i=t;i>=Math.max(20,t-29);i--){let s=0;for(let k=i-20;k<i;k++)s+=V[k];const avg=s/20;if(avg>0&&V[i]>=avg*2){big={i,high:R[i].high,low:R[i].low,base:base(C[i])};break;}}
-    const ok20=t>=22,ok60=t>=62;
-    S.sanyang[t]=ok20&&above3(t)&&[t-1,t-2,t-3].some(i=>!above3(i));
-    S.tangle[t]=ok20&&(Math.max(M[5][t],M[10][t],M[20][t])-Math.min(M[5][t],M[10][t],M[20][t]))/C[t]<.02;
-    S.sansheng[t]=ok20&&below3(t);
-    S.below5[t]=t>=4&&C[t]<M[5][t];
-    S.season[t]=ok60&&[t,t-1,t-2].every(i=>C[i]>M[60][i]);
-    S.belowSeason[t]=ok60&&C[t]<M[60][t];
-    S.bigBreak[t]=!!big&&C[t]>big.high&&big.i<t;
-    S.lowBaseVol[t]=!!big&&big.base<=.35;
-    S.highBaseVol[t]=!!big&&big.base>=.75;
-    let f=0,tr=0;for(let k=Math.max(0,t-4);k<=t;k++){f+=R[k].foreign||0;tr+=R[k].trust||0;}
-    S.chips[t]=!!hasChips&&f>0&&tr>0;
-    S.stopRef[t]=big&&C[t]>=big.low?{v:big.low,why:"大量低點"}:(ok20?{v:M[20][t],why:"20 日線"}:null);
-  }
-  return {S,M};
+const state={mode:"single",list:[],strategies:[],market:null,mseries:{},cache:new Map(),busy:false,date:""};
+const FIELDS=["minSig","mktMa","eps","roe","tp","sl","hold","disc","bN","bMkt","bKind","preset"];
+const CHECKS=["mktOn","fundOn",...E.SWITCHES.map((_,i)=>"sw-"+i)];
+function saveCfg(){try{const o={};FIELDS.forEach(k=>o[k]=$(k).value);CHECKS.forEach(k=>o[k]=$(k).checked);localStorage.setItem("tw-bt",JSON.stringify(o));}catch(e){}}
+function restoreCfg(){try{const s=JSON.parse(localStorage.getItem("tw-bt")||"null");if(!s)return false;FIELDS.forEach(k=>{if(k in s&&k!=="preset")$(k).value=s[k];});CHECKS.forEach(k=>{if(k in s)$(k).checked=s[k];});if(s.preset)$("preset").value=s.preset;return true;}catch(e){return false;}}
+function applyPreset(id){
+  const s=state.strategies.find(x=>x.id===id);if(!s)return;const p=s.params;
+  E.SWITCHES.forEach((k,i)=>$("sw-"+i).checked=p[k]!==false);
+  $("minSig").value=p.min_tech_score_for_signal;$("mktOn").checked=p.market_filter_enabled!==false;$("mktMa").value=p.market_filter_ma_period;
+  $("fundOn").checked=false;$("eps").value=p.eps_threshold;$("roe").value=p.roe_threshold;
+  $("tp").value=Math.round(p.target_return*100);$("sl").value=Math.round(p.stop_loss*100);$("hold").value=p.hold_days;
 }
+$("preset").addEventListener("change",e=>{applyPreset(e.target.value);run();});
 
 function cfg(){
-  const num=id=>{const v=parseFloat($(id).value);return isFinite(v)&&v>0?v:null;};
-  const d=parseFloat($("disc").value);
-  return {entry:ENTRY.filter(o=>$("e-"+o.id).checked).map(o=>o.id),exit:EXIT.filter(o=>$("x-"+o.id).checked).map(o=>o.id),
-    noHighBase:$("noHighBase").checked,tp:num("tp"),sl:num("sl"),hold:num("hold"),
-    fee:0.001425*(isFinite(d)&&d>=0?d:10)/10,tax:0.003};
+  const num=(id,d)=>{const v=parseFloat($(id).value);return isFinite(v)?v:d;};
+  const p={id:"custom",min_tech_score_for_signal:num("minSig",60),hold_days:Math.max(1,Math.round(num("hold",20))),
+    target_return:Math.max(0.001,num("tp",10)/100),stop_loss:Math.max(0.001,num("sl",8)/100)};
+  E.SWITCHES.forEach((k,i)=>p[k]=$("sw-"+i).checked);
+  const d=num("disc",10);
+  return {p,mktOn:$("mktOn").checked,mktMa:Math.round(num("mktMa",20)),fundOn:$("fundOn").checked,eps:num("eps",5),roe:num("roe",15),
+    fee:0.001425*(d>=0?d:10)/10};
 }
-
-const START=62;
 const taxOf=s=>s&&s.k==="ETF"?(/B$/.test(s.code)?0:0.001):0.003;
-function backtest(R,hasChips,c){
-  const {S,M}=signals(R,hasChips);const n=R.length;const C=R.map(r=>r.close);
-  const trades=[];let pos=null;let eq=1;const curve=new Array(n).fill(NaN);const bh=new Array(n).fill(NaN);
-  const net=(buy,sell)=>sell*(1-c.fee-c.tax)/(buy*(1+c.fee));
-  for(let t=START;t<n;t++){
-    bh[t]=C[t]/C[START];
-    if(pos){
-      const held=t-pos.e+1;let why=null;
-      if(c.exit.includes("stop")&&pos.stop&&C[t]<pos.stop)why="跌破"+pos.stopWhy;
-      else if(c.sl&&C[t]<=pos.price*(1-c.sl/100))why="停損 "+c.sl+"%";
-      else if(c.exit.includes("sansheng")&&S.sansheng[t])why="三聲無奈";
-      else if(c.exit.includes("below5")&&S.below5[t])why="跌破五日線";
-      else if(c.exit.includes("belowSeason")&&S.belowSeason[t])why="跌破季線";
-      else if(c.tp&&C[t]>=pos.price*(1+c.tp/100))why="停利 "+c.tp+"%";
-      else if(c.hold&&held>=c.hold)why="持有滿 "+c.hold+" 天";
-      curve[t]=pos.eq*net(pos.price,C[t]);
-      if(why&&t+1<n){
-        const px=R[t+1].open;const r=net(pos.price,px);eq=pos.eq*r;
-        trades.push({inDate:R[pos.e].date,inPx:pos.price,outDate:R[t+1].date,outPx:px,days:t+1-pos.e,ret:r-1,why,e:pos.e,x:t+1});
-        pos=null;continue;
-      }
-    }else curve[t]=eq;
-    if(!pos&&c.entry.length&&t+1<n){
-      const go=c.entry.every(k=>S[k][t])&&!(c.noHighBase&&S.highBaseVol[t]);
-      if(go){const sr=S.stopRef[t];pos={e:t+1,price:R[t+1].open,eq,stop:sr?sr.v:null,stopWhy:sr?sr.why:""};}
-    }
-  }
-  if(pos){const r=net(pos.price,C[n-1]);trades.push({inDate:R[pos.e].date,inPx:pos.price,outDate:"持有中",outPx:C[n-1],days:n-pos.e,ret:r-1,why:"",open:true,e:pos.e,x:n-1});curve[n-1]=pos.eq*r;}
-  // max drawdown on daily marked equity
-  let peak=0,mdd=0;for(let t=START;t<n;t++){const v=curve[t];if(!isFinite(v))continue;if(v>peak)peak=v;mdd=Math.min(mdd,v/peak-1);}
-  const closed=trades.filter(x=>!x.open);const wins=closed.filter(x=>x.ret>0);
-  const gp=wins.reduce((s,x)=>s+x.ret,0),gl=closed.filter(x=>x.ret<=0).reduce((s,x)=>s-x.ret,0);
-  const total=(curve[n-1]||1)-1;const years=Math.max(1/252,(n-1-START)/252);
-  return {trades,curve,bh,M,S,total,cagr:Math.pow(1+total,1/years)-1,bhRet:n>START?net(C[START],C[n-1])-1:0,mdd,
-    n:closed.length,win:closed.length?wins.length/closed.length:NaN,avg:closed.length?closed.reduce((s,x)=>s+x.ret,0)/closed.length:NaN,
-    pf:gl>0?gp/gl:(gp>0?Infinity:NaN),avgDays:closed.length?closed.reduce((s,x)=>s+x.days,0)/closed.length:NaN,inPos:trades.reduce((s,x)=>s+x.days,0)/Math.max(1,n-START)};
+function mseries(per){if(!state.market)return null;if(!state.mseries[per])state.mseries[per]=E.marketSeries(state.market,per);return state.mseries[per];}
+function fundOk(s,c){if(s.k==="ETF")return true;return s.eps!==null&&s.eps!==undefined&&s.roe!==null&&s.roe!==undefined&&s.eps>c.eps&&s.roe>c.roe;}
+function runOne(s,R,c){
+  const ind=E.indicators(R);const states=R.map((_,i)=>E.techState(ind,i));
+  const ms=c.mktOn?mseries(c.mktMa):null;const fok=!c.fundOn||fundOk(s,c);
+  const allow=t=>fok&&(!ms||!ms[R[t][0]]||ms[R[t][0]].ok!==false);
+  const res=E.tradeBacktest(R,states,c.p,{fee:c.fee,tax:taxOf(s),allow});
+  const sig=E.signalBacktest(R,states,c.p);
+  return {res,sig,ind,fok};
 }
 
 /* ---------- data ---------- */
 async function loadSeries(code){
   if(state.cache.has(code))return state.cache.get(code);
   const r=await fetch(`data/s/${encodeURIComponent(code)}.json`,{cache:"no-cache"});if(!r.ok)throw new Error("HTTP "+r.status);
-  const raw=await r.json();const rows=raw.map(x=>({date:x[0],open:x[1],high:x[2],low:x[3],close:x[4],volume:x[5],foreign:x[6],trust:x[7]}));
-  state.cache.set(code,rows);return rows;
+  const rows=await r.json();state.cache.set(code,rows);return rows;
 }
 function findStock(q){q=q.trim();if(!q)return null;const code=q.split(/\s+/)[0];
   return state.list.find(s=>s.code===code)||state.list.find(s=>s.name===q)||state.list.find(s=>s.code.startsWith(code))||state.list.find(s=>s.name.includes(q));}
@@ -267,6 +215,7 @@ function statHTML(l,v,s,c){return `<div class="stat"><span class="l">${l}</span>
 function cssv(k){return getComputedStyle(document.documentElement).getPropertyValue(k).trim();}
 function setupCanvas(cv){const box=cv.parentElement;const W=box.clientWidth,H=box.clientHeight,dpr=window.devicePixelRatio||1;if(!W||!H)return null;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext("2d");g.scale(dpr,dpr);return {g,W,H};}
 let lastSingle=null,lastBatch=null;
+const MIN_DAYS=80;
 
 async function runSingle(){
   const s=findStock($("stock").value);
@@ -275,25 +224,30 @@ async function runSingle(){
   $("out").innerHTML='<div class="panel empty">正在載入 '+esc(s.name)+' 的歷史資料…</div>';
   let R;try{R=await loadSeries(s.code);}catch(e){$("out").innerHTML='<div class="panel empty">無法載入這檔的資料，請稍後重新整理。</div>';return;}
   const c=cfg();
-  if(R.length<START+20){$("out").innerHTML=`<div class="panel empty">${esc(s.name)} 目前只有 ${R.length} 個交易日的資料，至少要 ${START+20} 天才能回測。資料每天會自動補長。</div>`;return;}
-  const res=backtest(R,s.hasChips,{...c,tax:taxOf(s)});lastSingle={s,R,res};lastBatch=null;
-  const t=res.trades;
-  const warn=c.entry.length?"":"<div class='warn'>沒有勾選任何進場條件，所以沒有交易。</div>";
-  const fewWarn=c.entry.length&&res.n<5?`<div class='warn'>只有 ${res.n} 筆完成的交易，樣本太少，勝率與報酬參考價值有限。試試多檔批次。</div>`:"";
-  const feeWarn=c.fee===0?"<div class='warn'>手續費設為 0，回測結果會比實際好。</div>":"";
+  if(R.length<MIN_DAYS){$("out").innerHTML=`<div class="panel empty">${esc(s.name)} 目前只有 ${R.length} 個交易日的資料，至少要 ${MIN_DAYS} 天才能回測。資料每天會自動補長。</div>`;return;}
+  const {res,sig,ind,fok}=runOne(s,R,c);lastSingle={s,R,res,ind};lastBatch=null;
+  const t=res.trades;const S0=res.START;
+  const warns=[];
+  if(!E.SWITCHES.some((_,i)=>$("sw-"+i).checked))warns.push("沒有勾選任何技術訊號，技術分永遠是 0。");
+  if(c.fundOn&&!fok)warns.push(s.eps===null||s.eps===undefined?"這檔沒有本益比資料，基本面過濾下不會進場。":"這檔目前基本面未過門檻，所以沒有進場。");
+  if(res.n<5&&t.length)warns.push(`只有 ${res.n} 筆完成的交易，樣本太少，勝率與報酬參考價值有限。試試多檔批次。`);
+  if(c.fee===0)warns.push("手續費設為 0，回測結果會比實際好。");
+  if(c.p.hold_days>R.length-S0-10)warns.push(`持有 ${c.p.hold_days} 天比目前的資料期間還長，結果大多是「持有中」。`);
   $("out").innerHTML=`
   <div class="panel">
-    <div class="head"><h3>${esc(s.name)} <span class="code">${esc(s.code)}・${esc(s.m||"")}${s.k==="ETF"?"・ETF":""}</span></h3><span class="code">${R[START].date} ～ ${R[R.length-1].date}・${R.length-START} 個交易日</span></div>
+    <div class="head"><h3>${esc(s.name)} <span class="code">${esc(s.code)}・${esc(s.m||"")}${s.k==="ETF"?"・ETF":""}</span></h3><span class="code">${R[S0][0]} ～ ${R[R.length-1][0]}・${R.length-S0} 個交易日</span></div>
     <div class="stats">
       ${statHTML("策略總報酬",pct(res.total),"年化 "+pct(res.cagr),cls(res.total))}
       ${statHTML("買進持有",pct(res.bhRet),"同期間、含成本",cls(res.bhRet))}
       ${statHTML("最大回撤",pct(res.mdd),"以每日收盤計",res.mdd<0?"down":"")}
       ${statHTML("交易次數",res.n+(t.some(x=>x.open)?" + 1":""),"持倉時間 "+Math.round(res.inPos*100)+"%")}
-      ${statHTML("勝率",isFinite(res.win)?Math.round(res.win*100)+"%":"—",res.n?`${t.filter(x=>!x.open&&x.ret>0).length} 勝 ${t.filter(x=>!x.open&&x.ret<=0).length} 敗`:"")}
+      ${statHTML("交易勝率",isFinite(res.win)?Math.round(res.win*100)+"%":"—",res.n?`${t.filter(x=>!x.open&&x.ret>0).length} 勝 ${t.filter(x=>!x.open&&x.ret<=0).length} 敗`:"")}
       ${statHTML("平均每筆",pct(res.avg,2),"已扣成本",cls(res.avg))}
       ${statHTML("獲利因子",isFinite(res.pf)?res.pf.toFixed(2):(res.pf===Infinity?"全勝":"—"),"總獲利 ÷ 總虧損")}
       ${statHTML("平均持有",isFinite(res.avgDays)?res.avgDays.toFixed(1)+" 天":"—","交易日")}
-    </div>${warn}${fewWarn}${feeWarn}
+    </div>
+    <div class="sigline"><span>訊號勝率（選股雷達評分用）：<b>${sig.winrate===null?"—":Math.round(sig.winrate*100)+"%"}</b>，共 <b>${sig.samples}</b> 次訊號${sig.avg!==null?`，平均每次 <b class="${cls(sig.avg)}">${pct(sig.avg,2)}</b>（未扣成本）`:""}</span></div>
+    ${warns.map(w=>`<div class="warn">${esc(w)}</div>`).join("")}
   </div>
   <div class="panel chartwrap">
     <div class="legend"><span><i style="background:var(--ink)"></i>收盤價</span><span><i style="background:var(--amber)"></i>20 日線</span><span><b class="up">▲</b> 買進</span><span><b class="down">▼</b> 賣出</span><span><i style="background:var(--up)"></i>策略淨值</span><span><i style="background:var(--bh)"></i>買進持有</span></div>
@@ -307,35 +261,34 @@ async function runSingle(){
 }
 function drawSingle(){
   if(!lastSingle)return;const cv=$("cv");if(!cv)return;const o=setupCanvas(cv);if(!o)return;const {g,W,H}=o;
-  const {R,res}=lastSingle;const n=R.length;const s0=START;const N=n-s0;
+  const {R,res,ind}=lastSingle;const n=R.length;const s0=res.START;const N=n-s0;
   const pad={l:8,r:62,t:10,b:22};const gap=16;const pH=(H-pad.t-pad.b-gap)*.62,eH=(H-pad.t-pad.b-gap)-pH;
   const X=i=>pad.l+(i-s0+.5)*(W-pad.l-pad.r)/N;
-  let lo=Infinity,hi=-Infinity;for(let i=s0;i<n;i++){lo=Math.min(lo,R[i].close,res.M[20][i]);hi=Math.max(hi,R[i].close,res.M[20][i]);}
+  let lo=Infinity,hi=-Infinity;for(let i=s0;i<n;i++){lo=Math.min(lo,R[i][4],ind.ma20[i]);hi=Math.max(hi,R[i][4],ind.ma20[i]);}
   const pr=(hi-lo)*.06||1;lo-=pr;hi+=pr;const Y=v=>pad.t+(hi-v)/(hi-lo)*pH;
   let elo=Infinity,ehi=-Infinity;for(let i=s0;i<n;i++)for(const v of [res.curve[i],res.bh[i]])if(isFinite(v)){elo=Math.min(elo,v);ehi=Math.max(ehi,v);}
   const epr=(ehi-elo)*.08||.05;elo-=epr;ehi+=epr;const eTop=pad.t+pH+gap;const EY=v=>eTop+(ehi-v)/(ehi-elo)*eH;
   g.font="11px "+cssv("--f-num");g.textBaseline="middle";g.lineWidth=1;
   const grid=(lo_,hi_,Yf,fmt)=>{g.strokeStyle=cssv("--line");g.fillStyle=cssv("--muted");for(let k=0;k<=3;k++){const v=lo_+(hi_-lo_)*k/3;const y=Math.round(Yf(v))+.5;g.beginPath();g.moveTo(pad.l,y);g.lineTo(W-pad.r,y);g.stroke();g.fillText(fmt(v),W-pad.r+6,y);}};
   grid(lo,hi,Y,v=>v.toFixed(v<50?2:1));grid(elo,ehi,EY,v=>(v>=1?"+":"")+((v-1)*100).toFixed(0)+"%");
-  // holding shading
   g.fillStyle=cssv("--chip");for(const tr of res.trades){const a=X(tr.e)-1,b=X(tr.x)+1;g.fillRect(a,pad.t,b-a,pH);}
   const line=(arr,col,w,Yf)=>{g.strokeStyle=col;g.lineWidth=w;g.beginPath();let st=false;for(let i=s0;i<n;i++){const v=arr[i];if(!isFinite(v))continue;st?g.lineTo(X(i),Yf(v)):g.moveTo(X(i),Yf(v));st=true;}g.stroke();};
-  line(res.M[20],cssv("--amber"),1.2,Y);line(R.map(r=>r.close),cssv("--ink"),1.4,Y);
+  line(ind.ma20,cssv("--amber"),1.2,Y);line(R.map(r=>r[4]),cssv("--ink"),1.4,Y);
   g.textAlign="center";g.font="bold 11px "+cssv("--f-body");
-  for(const tr of res.trades){g.fillStyle=cssv("--up");g.fillText("▲",X(tr.e),Math.min(pad.t+pH-6,Y(R[tr.e].low)+12));if(!tr.open){g.fillStyle=cssv("--down");g.fillText("▼",X(tr.x),Math.max(pad.t+6,Y(R[tr.x].high)-12));}}
+  for(const tr of res.trades){g.fillStyle=cssv("--up");g.fillText("▲",X(tr.e),Math.min(pad.t+pH-6,Y(R[tr.e][3])+12));if(!tr.open){g.fillStyle=cssv("--down");g.fillText("▼",X(tr.x),Math.max(pad.t+6,Y(R[tr.x][2])-12));}}
   line(res.bh,cssv("--bh"),1.2,EY);line(res.curve,cssv("--up"),1.8,EY);
   g.strokeStyle=cssv("--muted");g.setLineDash([3,3]);g.beginPath();const y1=EY(1);g.moveTo(pad.l,y1);g.lineTo(W-pad.r,y1);g.stroke();g.setLineDash([]);
   g.fillStyle=cssv("--muted");g.font="11px "+cssv("--f-num");g.textBaseline="alphabetic";
-  const step=Math.ceil(N/6);for(let j=0;j<N;j+=step){const i=s0+j;g.fillText(R[i].date.slice(0,7),X(i),H-6);}
+  const step=Math.ceil(N/6);for(let j=0;j<N;j+=step){const i=s0+j;g.fillText(R[i][0].slice(0,7),X(i),H-6);}
   g.textAlign="left";
 }
 
 async function runBatch(){
   const N=+$("bN").value,mkt=$("bMkt").value,kind=$("bKind").value;const c=cfg();
-  const pool=state.list.filter(s=>(!mkt||s.m===mkt)&&(!kind||(s.k||"股票")===kind)).sort((a,b)=>b.av-a.av).slice(0,N);
+  const pool=state.list.filter(s=>(!mkt||s.m===mkt)&&(!kind||s.k===kind)).sort((a,b)=>b.av-a.av).slice(0,N);
   $("out").innerHTML=`<div class="panel chartwrap"><div class="code" id="pt">載入 0 / ${pool.length} 檔…</div><div class="prog"><i id="pb"></i></div></div>`;
   const results=[];let done=0;let idx=0;
-  async function worker(){while(idx<pool.length){const s=pool[idx++];try{const R=await loadSeries(s.code);if(R.length>=START+20)results.push({s,res:backtest(R,s.hasChips,{...c,tax:taxOf(s)}),R});}catch(e){}done++;const pb=$("pb"),pt=$("pt");if(pb)pb.style.width=(done/pool.length*100)+"%";if(pt)pt.textContent=`載入 ${done} / ${pool.length} 檔…`;}}
+  async function worker(){while(idx<pool.length){const s=pool[idx++];try{const R=await loadSeries(s.code);if(R.length>=MIN_DAYS){const r=runOne(s,R,c);results.push({s,R,res:r.res,sig:r.sig});}}catch(e){}done++;const pb=$("pb"),pt=$("pt");if(pb)pb.style.width=(done/pool.length*100)+"%";if(pt)pt.textContent=`載入 ${done} / ${pool.length} 檔…`;}}
   await Promise.all(Array.from({length:6},worker));
   lastBatch={results,c};lastSingle=null;renderBatch();
 }
@@ -349,28 +302,31 @@ function renderBatch(){
   const days=results.flatMap(r=>r.res.trades.filter(t=>!t.open).map(t=>t.days));
   const beat=results.filter(r=>r.res.trades.length&&r.res.total>r.res.bhRet).length,traded=results.filter(r=>r.res.trades.length).length;
   const avgTot=results.reduce((s,r)=>s+r.res.total,0)/results.length,avgBh=results.reduce((s,r)=>s+r.res.bhRet,0)/results.length;
-  const R0=results[0].R;
+  const sigN=results.reduce((s,r)=>s+r.sig.samples,0),sigW=results.reduce((s,r)=>s+(r.sig.winrate||0)*r.sig.samples,0);
+  const R0=results[0].R;const S0=60;
   $("out").innerHTML=`
   <div class="panel">
-    <div class="head"><h3>多檔批次結果</h3><span class="code">${results.length} 檔・約 ${R0[START].date} ～ ${R0[R0.length-1].date}</span></div>
+    <div class="head"><h3>多檔批次結果</h3><span class="code">${results.length} 檔・約 ${R0[S0][0]} ～ ${R0[R0.length-1][0]}</span></div>
     <div class="stats">
       ${statHTML("總交易數",nf(all.length),traded+" 檔有交易")}
-      ${statHTML("勝率",all.length?Math.round(wins.length/all.length*100)+"%":"—",`${wins.length} 勝 ${all.length-wins.length} 敗`)}
+      ${statHTML("交易勝率",all.length?Math.round(wins.length/all.length*100)+"%":"—",`${wins.length} 勝 ${all.length-wins.length} 敗`)}
       ${statHTML("平均每筆",pct(avg,2),"中位數 "+pct(med,2),cls(avg))}
       ${statHTML("獲利因子",gl>0?(gp/gl).toFixed(2):"—","總獲利 ÷ 總虧損")}
       ${statHTML("每檔平均總報酬",pct(avgTot),"策略",cls(avgTot))}
       ${statHTML("每檔平均買進持有",pct(avgBh),"同期間",cls(avgBh))}
       ${statHTML("贏過買進持有",traded?Math.round(beat/traded*100)+"%":"—",`${beat} / ${traded} 檔`)}
       ${statHTML("平均持有",days.length?(days.reduce((s,v)=>s+v,0)/days.length).toFixed(1)+" 天":"—","交易日")}
-    </div>${c.fee===0?"<div class='warn'>手續費設為 0，回測結果會比實際好。</div>":""}
+    </div>
+    <div class="sigline"><span>訊號勝率（選股雷達評分用，全部樣本合計）：<b>${sigN?Math.round(sigW/sigN*100)+"%":"—"}</b>，共 <b>${nf(sigN)}</b> 次訊號</span></div>
+    ${c.fee===0?"<div class='warn'>手續費設為 0，回測結果會比實際好。</div>":""}
   </div>
   <div class="panel chartwrap">
     <div class="legend"><span>每筆交易報酬分布（已扣成本）</span><span><i style="background:var(--up)"></i>獲利</span><span><i style="background:var(--down)"></i>虧損</span></div>
     <div class="cbox short"><canvas id="hv" aria-label="交易報酬分布圖"></canvas></div>
   </div>
   <div class="panel tablebox">
-    <table><thead><tr><th>股票</th><th class="num">交易數</th><th class="num">勝率</th><th class="num">平均每筆</th><th class="num">策略總報酬</th><th class="num">買進持有</th><th class="num">最大回撤</th></tr></thead>
-    <tbody>${results.slice().sort((a,b)=>b.res.total-a.res.total).map(({s,res})=>`<tr class="click" data-code="${esc(s.code)}" tabindex="0"><td><b>${esc(s.name)}</b> <span class="code">${esc(s.code)}</span></td><td class="num">${res.n}</td><td class="num">${isFinite(res.win)?Math.round(res.win*100)+"%":"—"}</td><td class="num ${cls(res.avg)}">${pct(res.avg,2)}</td><td class="num ${cls(res.total)}">${pct(res.total)}</td><td class="num ${cls(res.bhRet)}">${pct(res.bhRet)}</td><td class="num">${pct(res.mdd)}</td></tr>`).join("")}</tbody></table>
+    <table><thead><tr><th>股票</th><th class="num">交易數</th><th class="num">交易勝率</th><th class="num">訊號勝率</th><th class="num">平均每筆</th><th class="num">策略總報酬</th><th class="num">買進持有</th><th class="num">最大回撤</th></tr></thead>
+    <tbody>${results.slice().sort((a,b)=>b.res.total-a.res.total).map(({s,res,sig})=>`<tr class="click" data-code="${esc(s.code)}" tabindex="0"><td><b>${esc(s.name)}</b> <span class="code">${esc(s.code)}</span></td><td class="num">${res.n}</td><td class="num">${isFinite(res.win)?Math.round(res.win*100)+"%":"—"}</td><td class="num">${sig.winrate===null?"—":Math.round(sig.winrate*100)+"%"}<span class="code"> /${sig.samples}</span></td><td class="num ${cls(res.avg)}">${pct(res.avg,2)}</td><td class="num ${cls(res.total)}">${pct(res.total)}</td><td class="num ${cls(res.bhRet)}">${pct(res.bhRet)}</td><td class="num">${pct(res.mdd)}</td></tr>`).join("")}</tbody></table>
   </div>`;
   document.querySelectorAll("tr.click").forEach(tr=>{const go=()=>{const s=state.list.find(x=>x.code===tr.dataset.code);$("stock").value=s.code+" "+s.name;setMode("single");run();};tr.onclick=go;tr.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();go();}};});
   drawHist(all);
@@ -382,7 +338,7 @@ function drawHist(all){
   const mx=Math.max(1,...bins.map(b=>b.n));const pad={l:30,r:10,t:10,b:22};const cw=(W-pad.l-pad.r)/bins.length;const ph=H-pad.t-pad.b;
   g.font="11px "+cssv("--f-num");g.fillStyle=cssv("--muted");g.strokeStyle=cssv("--line");g.textBaseline="middle";
   for(let k=0;k<=2;k++){const v=Math.round(mx*k/2);const y=Math.round(pad.t+ph-v/mx*ph)+.5;g.beginPath();g.moveTo(pad.l,y);g.lineTo(W-pad.r,y);g.stroke();g.fillText(String(v),2,y);}
-  bins.forEach((b,i)=>{const h=b.n/mx*ph;g.fillStyle=b.a>=0?cssv("--up"):cssv("--down");g.fillRect(pad.l+i*cw+1,pad.t+ph-h,cw-2,h);});
+  bins.forEach((b,i)=>{const h=b.n/mx*ph;g.fillStyle=b.a>=-1e-9?cssv("--up"):cssv("--down");g.fillRect(pad.l+i*cw+1,pad.t+ph-h,cw-2,h);});
   g.textAlign="center";g.textBaseline="alphabetic";g.fillStyle=cssv("--muted");
   [-0.2,-0.1,0,0.1,0.2,0.3].forEach(v=>{const x=pad.l+(v-lo)/bw*cw;g.fillText((v>0?"+":"")+Math.round(v*100)+"%"+(v===-0.2?"↓":v===0.3?"↑":""),Math.min(W-pad.r-14,Math.max(pad.l+14,x)),H-6);});
   g.textAlign="left";
@@ -401,10 +357,13 @@ try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",redraw)
 new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
 
 $("out").innerHTML='<div class="panel empty">正在載入股票清單…</div>';
-fetch("data/screener.json",{cache:"no-cache"}).then(r=>r.ok?r.json():Promise.reject(r.status)).then(doc=>{
-  state.list=doc.stocks;state.date=doc.date;
+Promise.all([fetch("data/screener.json",{cache:"no-cache"}).then(r=>r.ok?r.json():Promise.reject(r.status)),
+  fetch("data/market.json",{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null)]).then(([doc,market])=>{
+  state.list=doc.stocks;state.strategies=doc.strategies||[];state.market=market;state.date=doc.date;
+  $("preset").innerHTML=state.strategies.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("");
   $("stockList").innerHTML=state.list.map(s=>`<option value="${esc(s.code)} ${esc(s.name)}"></option>`).join("");
   $("msg").textContent=`資料更新至 ${doc.date}・共 ${doc.days} 個交易日`;
+  if(!restoreCfg())applyPreset(state.strategies[0]&&state.strategies[0].id);
   if(!$("stock").value){const pick=state.list.find(s=>s.code==="2330")||state.list.slice().sort((a,b)=>b.av-a.av)[0];if(pick)$("stock").value=pick.code+" "+pick.name;}
   run();
 }).catch(()=>{$("out").innerHTML='<div class="panel empty">讀不到每日資料。這個頁面要放在 GitHub Pages 上，等每日更新跑完才會有資料。</div>';});

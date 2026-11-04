@@ -1,0 +1,30 @@
+{
+  "id": "default",
+  "name": "預設策略（基本面＋技術＋回測）",
+  "description": "原專案的預設策略：EPS>5、ROE>15 為基本面門檻，技術四訊號評分，加上歷史訊號勝率，三項加權 0.3／0.3／0.4。總分 ≥65、基本面通過且技術分 ≥50 才 BUY。停損 −8%、停利 +10%，持有 20 日。",
+  "source": "default",
+  "created_at": "2026-04-09T00:00:00Z",
+  "updated_at": "2026-04-09T00:00:00Z",
+  "params": {
+    "eps_threshold": 5.0,
+    "roe_threshold": 15.0,
+    "fundamental_pass_required": true,
+    "backtest_years": 3,
+    "hold_days": 20,
+    "min_tech_score_for_signal": 60,
+    "target_return": 0.1,
+    "stop_loss": 0.08,
+    "weight_fundamental": 0.3,
+    "weight_technical": 0.3,
+    "weight_backtest": 0.4,
+    "min_total_score_for_buy": 65,
+    "min_tech_score_for_buy": 50,
+    "use_ma_alignment": true,
+    "use_bollinger_bounce": true,
+    "use_kd_golden_cross": true,
+    "use_macd_bullish": true,
+    "use_volume_patterns": true,
+    "market_filter_enabled": true,
+    "market_filter_ma_period": 20
+  }
+}
