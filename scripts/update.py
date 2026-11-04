@@ -193,6 +193,10 @@ def tpex_chips(d):
         ic = find(f, lambda x: x == "代號")
         fi = find(f, has("外資"), has("買賣超"), has("不含"))
         ti = find(f, has("投信"), has("買賣超"))
+        if (fi < 0 or ti < 0) and ic == 0 and len(f) >= 24 and f[4] == f[13] == "買賣超股數":
+            # 新版欄位只寫「買進/賣出/買賣超股數」重複 7 組，順序固定：
+            # 外資及陸資(不含外資自營商)、外資自營商、外資合計、投信、自營商自行買賣、自營商避險、自營商合計
+            fi, ti = 4, 13
         if ic >= 0 and fi >= 0 and ti >= 0:
             return {str(r[ic]).strip(): (lots(r[fi]), lots(r[ti])) for r in t.get("data", [])}
     debug_once("tpex_chips", j)
@@ -268,7 +272,9 @@ def update_raw():
             d -= dt.timedelta(days=1)
             continue
         old = load_json(p, None) if p.exists() else None
-        if old and (not old.get("missing") or (today - d).days > RETRY_WINDOW):
+        # 上櫃法人資料早期解析失敗，舊日期也補抓一次
+        chips_fix = old and old.get("missing") == ["tpex_chips"] and not old.get("chips_retried")
+        if old and not chips_fix and (not old.get("missing") or (today - d).days > RETRY_WINDOW):
             have += 1
             d -= dt.timedelta(days=1)
             continue
@@ -281,9 +287,11 @@ def update_raw():
         else:
             if d == today and "twse_chips" in rec["missing"]:
                 print("  今日法人資料尚未公布，先存行情，下次執行會補抓")
+            if (today - d).days > RETRY_WINDOW:
+                rec["chips_retried"] = True
             p.write_text(json.dumps(rec, ensure_ascii=False, separators=(",", ":")), "utf-8")
             have += 1
-            fetched += 1
+            fetched += 0 if chips_fix else 1
         d -= dt.timedelta(days=1)
     HOLIDAYS.write_text(json.dumps(sorted(holidays)), "utf-8")
     files = sorted(RAW.glob("*.json"))
