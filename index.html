@@ -98,6 +98,9 @@ pre{font-family:var(--f-num);font-size:12px;background:var(--chip);padding:10px;
 #msg.err{color:var(--down)}
 .foot{font-size:12px;color:var(--muted);max-width:80ch}
 .empty{padding:28px;text-align:center;color:var(--muted)}
+.nav{display:flex;gap:6px;flex-wrap:wrap}
+.nav a{color:var(--ink);text-decoration:none;padding:5px 12px;border:1px solid var(--line);border-radius:5px;background:var(--panel);white-space:nowrap;font-size:13px}
+.nav a[aria-current="page"]{background:var(--ink);color:var(--panel);border-color:var(--ink);font-weight:700}
 .filters{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:12px 14px}
 .filters label{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted)}
 .filters input,.filters select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:6px 8px}
@@ -113,7 +116,10 @@ pre{font-family:var(--f-num);font-size:12px;background:var(--chip);padding:10px;
       <h1>老王選股<span>雷達</span></h1>
       <p class="sub">把王倚隆（老王）常用的「均線、大量、基期、籌碼」規則寫成條件，每天收盤後自動掃過上市櫃股票，排出最符合的標的。</p>
     </div>
+    <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+    <nav class="nav" aria-label="網站頁面"><a href="./" aria-current="page">選股雷達</a><a href="backtest.html">策略回測</a></nav>
     <div class="datasrc"><span>目前資料：</span><span id="srcBadge" class="badge warn">範例資料（模擬，非真實行情）</span></div>
+    </div>
   </header>
 
   <div class="grid">

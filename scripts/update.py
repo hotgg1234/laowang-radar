@@ -28,9 +28,10 @@ HOLIDAYS = ROOT / "data" / "holidays.json"
 SITE = ROOT / "_site"
 TZ = ZoneInfo("Asia/Taipei")
 
-TARGET_DAYS = 130      # 要保留的交易日數（季線 60 日 + 半年基期 120 日）
-KEEP_DAYS = 160        # 超過就刪除最舊的原始檔
-MAX_LOOKBACK = 260     # 往回最多找幾個日曆天
+TARGET_DAYS = 500      # 要保留的交易日數（約 2 年，供回測使用）
+KEEP_DAYS = 520        # 超過就刪除最舊的原始檔
+MAX_LOOKBACK = 760     # 往回最多找幾個日曆天
+MAX_NEW_PER_RUN = 150  # 每次執行最多新抓幾個交易日，避免超過 GitHub Actions 時限；不足的下次再補
 SLEEP = 4.0            # 每次請求間隔秒數，證交所每 5 秒超過 3 次會封鎖 IP
 RETRY_WINDOW = 7       # 幾天內缺漏的資料會再補抓
 
@@ -225,9 +226,10 @@ def update_raw():
     holidays = set(load_json(HOLIDAYS, []))
     today = dt.datetime.now(TZ).date()
     have = 0
+    fetched = 0
     d = today
     for _ in range(MAX_LOOKBACK):
-        if have >= TARGET_DAYS:
+        if have >= TARGET_DAYS or fetched >= MAX_NEW_PER_RUN:
             break
         p = RAW / f"{d:%Y%m%d}.json"
         if d.weekday() >= 5 or d.isoformat() in holidays:
@@ -249,6 +251,7 @@ def update_raw():
                 print("  今日法人資料尚未公布，先存行情，下次執行會補抓")
             p.write_text(json.dumps(rec, ensure_ascii=False, separators=(",", ":")), "utf-8")
             have += 1
+            fetched += 1
         d -= dt.timedelta(days=1)
     HOLIDAYS.write_text(json.dumps(sorted(holidays)), "utf-8")
     files = sorted(RAW.glob("*.json"))
@@ -346,8 +349,20 @@ def analyze(rows, has_chips):
     }
 
 
+def write_page(src, dst):
+    page = src.read_text("utf-8")
+    if not page.lstrip().lower().startswith("<!doctype"):
+        # 頁面檔只有內容；獨立網站需要補上編碼、viewport 與基本樣式
+        page = ('<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">'
+                '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
+                '<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);'
+                'padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}'
+                '[hidden]{display:none!important}</style></head><body>' + page + '</body></html>')
+    dst.write_text(page, "utf-8")
+
+
 def build():
-    files = sorted(RAW.glob("*.json"))[-TARGET_DAYS:]
+    files = sorted(RAW.glob("*.json"))[-KEEP_DAYS:]
     if not files:
         sys.exit("沒有原始資料，請先執行抓取。")
     days = [load_json(p, None) for p in files]
@@ -362,15 +377,10 @@ def build():
     if SITE.exists():
         shutil.rmtree(SITE)
     out_s.mkdir(parents=True)
-    page = (ROOT / "index.html").read_text("utf-8")
-    if not page.lstrip().lower().startswith("<!doctype"):
-        # index.html 只有頁面內容；獨立網站需要補上編碼、viewport 與基本樣式
-        page = ('<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">'
-                '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
-                '<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);'
-                'padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}'
-                '[hidden]{display:none!important}</style></head><body>' + page + '</body></html>')
-    (SITE / "index.html").write_text(page, "utf-8")
+    for name in ("index.html", "backtest.html"):
+        src = ROOT / name
+        if src.exists():
+            write_page(src, SITE / name)
     stocks = []
     for code, rows in series.items():
         # 只收一般股票：4 碼、非 0 開頭（排除 ETF、權證），且最新交易日有成交
